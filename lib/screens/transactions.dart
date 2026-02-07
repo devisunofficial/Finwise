@@ -2,8 +2,59 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'add_trans.dart';
 
-class Transactions extends StatelessWidget {
+Widget monthHeader(DateTime date) {
+  const months = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+
+  return Padding(
+    padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+    child: RichText(
+      text: TextSpan(
+        children: [
+          TextSpan(
+            text: months[date.month - 1],
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+          const TextSpan(text: " "),
+          TextSpan(
+            text: date.year.toString(),
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.black.withValues(alpha: .5),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class Transactions extends StatefulWidget {
   const Transactions({super.key});
+
+  @override
+  State<Transactions> createState() => _TransactionsPageState();
+}
+
+class _TransactionsPageState extends State<Transactions> {
+  int? expandedIndex;
+  String? expandedDocId;
 
   @override
   Widget build(BuildContext context) {
@@ -11,9 +62,11 @@ class Transactions extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           "Transactions",
-          style: TextStyle(fontWeight: FontWeight.w800),
+          style: TextStyle(
+            fontSize: 24, // 👈 increase this
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        shape: Border(bottom: BorderSide(color: Colors.grey.withValues(alpha: .3),)),
       ),
 
       body: StreamBuilder<QuerySnapshot>(
@@ -22,26 +75,78 @@ class Transactions extends StatelessWidget {
             .orderBy('timestamp', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+          if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text("No transactions found"));
+          final docs = snapshot.data!.docs;
+
+          final Map<String, List<QueryDocumentSnapshot>> grouped = {};
+
+          for (var doc in docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            final date = (data['timestamp'] as Timestamp).toDate();
+
+            final key = monthKey(date);
+
+            grouped.putIfAbsent(key, () => []).add(doc);
           }
 
-          return ListView.builder(
-            itemCount: snapshot.data!.docs.length,
-            itemBuilder: (context, index) {
-              final data =
-                  snapshot.data!.docs[index].data() as Map<String, dynamic>;
+          return ListView(
+            children: grouped.entries.map((entry) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  /// 👇 DEFINE firstDate BEFORE using it
+                  Builder(
+                    builder: (context) {
+                      final firstDoc = entry.value.first;
+                      final firstDate =
+                          ((firstDoc.data()
+                                      as Map<String, dynamic>)['timestamp']
+                                  as Timestamp)
+                              .toDate();
 
-              return TransactionTile(data: data);
-            },
+                      return monthHeader(firstDate);
+                    },
+                  ),
+
+                  /// 📦 TRANSACTIONS
+                  ...entry.value.map((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+
+                    return TransactionTile(
+                      docId: doc.id,
+                      data: data,
+                      isExpanded: expandedDocId == doc.id,
+                      onTap: () {
+                        setState(() {
+                          expandedDocId = expandedDocId == doc.id
+                              ? null
+                              : doc.id;
+                        });
+                      },
+                      onLongPress: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AddTransactionPage(
+                              docId: doc.id,
+                              existingData: data,
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  }),
+                ],
+              );
+            }).toList(),
           );
         },
       ),
 
+      /// ➕ ADD BUTTON (RESTORED)
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF0B7D6E),
         child: const Icon(Icons.add),
@@ -56,89 +161,100 @@ class Transactions extends StatelessWidget {
   }
 }
 
-class TransactionTile extends StatefulWidget {
+class TransactionTile extends StatelessWidget {
+  final String docId;
   final Map<String, dynamic> data;
+  final bool isExpanded;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
 
-  const TransactionTile({super.key, required this.data});
-
-  @override
-  State<TransactionTile> createState() => _TransactionTileState();
-}
-
-class _TransactionTileState extends State<TransactionTile> {
-  bool expanded = false;
+  const TransactionTile({
+    super.key,
+    required this.docId,
+    required this.data,
+    required this.isExpanded,
+    required this.onTap,
+    required this.onLongPress,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final color = _getColor(widget.data['color']);
-    final timestamp = widget.data['timestamp'] as Timestamp;
+    final timestamp = data['timestamp'] as Timestamp;
     final dateTime = timestamp.toDate();
 
-    return Column(
-      children: [
-        ListTile(
-          leading: CircleAvatar(backgroundColor: color),
-          title: Text(
-            widget.data['title'],
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-          subtitle: Text("${dateTime.day} Jan ${dateTime.year}"),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                "\$₹{widget.data['amount']}",
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-              IconButton(
-                icon: Icon(
-                  expanded
-                      ? Icons.keyboard_arrow_up
-                      : Icons.keyboard_arrow_down,
-                ),
-                onPressed: () {
-                  setState(() {
-                    expanded = !expanded;
-                  });
-                },
-              ),
-            ],
-          ),
-        ),
-
-        /// 🔹 EXPANDED DETAILS
-        AnimatedCrossFade(
-          firstChild: const SizedBox(),
-          secondChild: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return InkWell(
+      onTap: onTap,
+      onLongPress: onLongPress,
+      child: Column(
+        children: [
+          ListTile(
+            leading: CircleAvatar(backgroundColor: _getColor(data['color'])),
+            title: Text(
+              data['title'],
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            subtitle: Text(
+              "${dateTime.day}/${dateTime.month}/${dateTime.year}",
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                _info("Amount", "\$${widget.data['amount']}"),
-                _info("Category", widget.data['category']),
-                _info(
-                  "Date & Time",
-                  "${dateTime.day} Jan ${dateTime.year} • "
-                      "${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}",
+                Text(
+                  "₹${data['amount']}",
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
-                _info(
-                  "Status",
-                  widget.data['status'],
-                  color: widget.data['status'] == "Overspend"
-                      ? Colors.red
-                      : Colors.green,
+                const SizedBox(width: 4),
+
+                /// 🔄 Arrow animation
+                AnimatedRotation(
+                  turns: isExpanded ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: const Icon(Icons.keyboard_arrow_down),
                 ),
               ],
             ),
           ),
-          crossFadeState: expanded
-              ? CrossFadeState.showSecond
-              : CrossFadeState.showFirst,
-          duration: const Duration(milliseconds: 250),
-        ),
 
-        const Divider(),
-      ],
+          /// 📦 Expandable content
+          AnimatedSize(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+            child: isExpanded
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _info("Amount", "₹${data['amount']}"),
+                        _info("Category", data['category']),
+                        _info(
+                          "Date & Time",
+                          "${dateTime.day}/${dateTime.month}/${dateTime.year} • "
+                              "${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}",
+                        ),
+                        _info(
+                          "Status",
+                          data['status'],
+                          color: data['status'] == "Overspend"
+                              ? Colors.red
+                              : Colors.green,
+                        ),
+
+                        if (data['note'] != null &&
+                            data['note'].toString().isNotEmpty)
+                          _info("Note", data['note']),
+                      ],
+                    ),
+                  )
+                : const SizedBox(),
+          ),
+
+          const Divider(),
+        ],
+      ),
     );
   }
 
@@ -161,4 +277,39 @@ class _TransactionTileState extends State<TransactionTile> {
         return Colors.grey;
     }
   }
+}
+
+String dateHeader(DateTime date) {
+  final now = DateTime.now();
+
+  if (DateUtils.isSameDay(date, now)) {
+    return "Today";
+  } else if (DateUtils.isSameDay(date, now.subtract(const Duration(days: 1)))) {
+    return "Yesterday";
+  } else {
+    return "${date.day}/${date.month}/${date.year}";
+  }
+}
+
+String monthKey(DateTime date) {
+  return "${date.year}-${date.month}";
+}
+
+Map<String, String> monthLabel(DateTime date) {
+  const months = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+
+  return {"month": months[date.month - 1], "year": date.year.toString()};
 }
