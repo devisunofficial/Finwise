@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "518707307236",
+    "project_id": "gemini-hack-e47e4",
+    "storage_bucket": "gemini-hack-e47e4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:518707307236:android:383e632db01546d8ef82f1",
+        "android_client_info": {
+          "package_name": "com.example.finwise"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "518707307236-f12ntetdbot3kri4udfcjsd5ti07380b.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAFDw2OPhHiKzFPmFt5JSc69jzftpfY9Jk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "518707307236-f12ntetdbot3kri4udfcjsd5ti07380b.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "518707307236-5hqmvhde9f14a4amdjjvbirocn1rcq7l.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.finwise"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
