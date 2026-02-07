@@ -14,6 +14,7 @@ class _LoginScreenState extends State<Login> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final AuthService _authService = AuthService();
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -76,7 +77,7 @@ class _LoginScreenState extends State<Login> {
               // Password field
               TextField(
                 controller: passwordController,
-                obscureText: true,
+                obscureText: _obscurePassword,
                 decoration: InputDecoration(
                   hintText: "Password",
                   filled: true,
@@ -84,6 +85,18 @@ class _LoginScreenState extends State<Login> {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
+                  ),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
                   ),
                 ),
               ),
@@ -106,7 +119,7 @@ class _LoginScreenState extends State<Login> {
                     final password = passwordController.text.trim();
 
                     try {
-                      await _authService.signInWithEmailAndPassword(
+                       _authService.signInWithEmailAndPassword(
                         email: email,
                         password: password,
                       );
