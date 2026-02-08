@@ -1,8 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/services.dart';
+import 'package:finwise/firestore.dart';
 
 class AddTransactionPage extends StatefulWidget {
-  const AddTransactionPage({super.key});
+  final String uid;
+  final String? docId;
+  final Map<String, dynamic>? existingData;
+  const AddTransactionPage({
+    super.key,
+    required this.uid,
+    this.docId,
+    this.existingData,
+  });
 
   @override
   State<AddTransactionPage> createState() => _AddTransactionPageState();
@@ -11,16 +21,29 @@ class AddTransactionPage extends StatefulWidget {
 class _AddTransactionPageState extends State<AddTransactionPage> {
   final TextEditingController amountController = TextEditingController();
   final TextEditingController noteController = TextEditingController();
+  final FirestoreService _firestoreService = FirestoreService();
 
   String selectedCategory = "Food";
   DateTime selectedDateTime = DateTime.now();
 
-  final List<String> categories = [
-    "Grocery",
-    "Food",
-    "Travel",
-    "Shopping"
-  ];
+  @override
+  void initState() {
+    super.initState();
+
+    /// 🔁 THIS IS THE PART YOU ASKED ABOUT
+    if (widget.existingData != null) {
+      amountController.text = widget.existingData!['amount'].toString();
+
+      selectedCategory = widget.existingData!['category'];
+
+      noteController.text = widget.existingData!['note'] ?? '';
+
+      selectedDateTime = (widget.existingData!['timestamp'] as Timestamp)
+          .toDate();
+    }
+  }
+
+  final List<String> categories = ["Grocery", "Food", "Travel", "Shopping"];
 
   /// 🔹 Pick Date
   Future<void> pickDateTime() async {
@@ -53,11 +76,9 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
 
   /// 🔹 Save to Firestore
   Future<void> saveTransaction() async {
-    if (amountController.text.isEmpty) return;
-
     final amount = int.parse(amountController.text);
 
-    await FirebaseFirestore.instance.collection('transactions').add({
+    final data = {
       "title": selectedCategory,
       "amount": amount,
       "category": selectedCategory,
@@ -65,7 +86,16 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
       "timestamp": selectedDateTime,
       "status": amount > 2000 ? "Overspend" : "Normal",
       "color": amount > 2000 ? "red" : "green",
-    });
+    };
+
+    if (widget.docId == null) {
+      await _firestoreService.addTransaction(uid: widget.uid, data: data);
+    } else {
+      await _firestoreService
+          .userTransactions(widget.uid)
+          .doc(widget.docId)
+          .update(data);
+    }
 
     Navigator.pop(context);
   }
@@ -73,27 +103,34 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Add Transactions"),
-      ),
+      appBar: AppBar(title: const Text("Add Transactions")),
 
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             /// 💰 AMOUNT
             TextField(
               controller: amountController,
-              keyboardType: TextInputType.number,
-              style: const TextStyle(
-                fontSize: 36,
-                fontWeight: FontWeight.bold,
+              autofocus: true, // 👈 opens keyboard immediately
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+                signed: false,
               ),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+              ],
+              style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
               decoration: const InputDecoration(
                 prefixText: "₹ ",
-                hintText: "0.00",
+                prefixStyle: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                  fontSize: 36.00,
+                ),
+                hintText: "00.0",
+                hintStyle: TextStyle(color: Colors.black38),
                 border: InputBorder.none,
               ),
             ),
@@ -101,8 +138,10 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
             const SizedBox(height: 24),
 
             /// 📂 CATEGORY
-            const Text("Select Category",
-                style: TextStyle(fontWeight: FontWeight.w600)),
+            const Text(
+              "Select Category",
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
 
             const SizedBox(height: 10),
             Wrap(

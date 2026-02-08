@@ -1,6 +1,8 @@
 import 'package:finwise/screens/home.dart';
 import 'package:finwise/authenticate/auth.dart';
 import 'package:finwise/authenticate/login.dart';
+import 'package:finwise/firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'screens/add.dart';
 import 'screens/goals.dart';
@@ -13,8 +15,9 @@ class Wrapper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authService = AuthService();
+    final firestoreService = FirestoreService();
 
-    return StreamBuilder(
+    return StreamBuilder<User?>(
       stream: authService.user,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -24,7 +27,22 @@ class Wrapper extends StatelessWidget {
         }
 
         if (snapshot.hasData) {
-          return const HomePage();
+          final user = snapshot.data!;
+          return FutureBuilder<void>(
+            future: firestoreService.ensureUserDoc(
+              uid: user.uid,
+              email: user.email ?? '',
+            ),
+            builder: (context, userDocSnapshot) {
+              if (userDocSnapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              return HomePage(uid: user.uid);
+            },
+          );
         }
 
         return const Login();
@@ -34,7 +52,9 @@ class Wrapper extends StatelessWidget {
 }
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({super.key, required this.uid});
+
+  final String uid;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -42,13 +62,20 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
-  List<Widget> widgetList = const [
-    Home(),
-    Transactions(),
-    Add(),
-    Goals(),
-    Investment(),
-  ];
+  late final List<Widget> widgetList;
+
+  @override
+  void initState() {
+    super.initState();
+    widgetList = [
+      Home(uid: widget.uid),
+      Transactions(uid: widget.uid),
+      const Add(),
+      const Goals(),
+      const Investment(),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -117,4 +144,3 @@ void _showPopupMenu(BuildContext context) async {
     elevation: 100.0,
   );
 }
-

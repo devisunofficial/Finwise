@@ -119,7 +119,7 @@ class _LoginScreenState extends State<Login> {
                     final password = passwordController.text.trim();
 
                     try {
-                       _authService.signInWithEmailAndPassword(
+                      await _authService.signInWithEmailAndPassword(
                         email: email,
                         password: password,
                       );
