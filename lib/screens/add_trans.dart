@@ -44,24 +44,6 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   }
 
   final List<String> categories = ["Grocery", "Food", "Travel", "Shopping"];
-  @override
-  void initState() {
-    super.initState();
-
-    /// 🔁 THIS IS THE PART YOU ASKED ABOUT
-    if (widget.existingData != null) {
-      amountController.text = widget.existingData!['amount'].toString();
-
-      selectedCategory = widget.existingData!['category'];
-
-      noteController.text = widget.existingData!['note'] ?? '';
-
-      selectedDateTime = (widget.existingData!['timestamp'] as Timestamp)
-          .toDate();
-    }
-  }
-
-  final List<String> categories = ["Grocery", "Food", "Travel", "Shopping"];
 
   /// 🔹 Pick Date
   Future<void> pickDateTime() async {
@@ -97,7 +79,6 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     final amount = int.parse(amountController.text);
 
     final data = {
-    final data = {
       "title": selectedCategory,
       "amount": amount,
       "category": selectedCategory,
@@ -123,7 +104,6 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Add Transactions")),
-      appBar: AppBar(title: const Text("Add Transactions")),
 
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -142,24 +122,8 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                 FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
               ],
               style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
-              autofocus: true, // 👈 opens keyboard immediately
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-                signed: false,
-              ),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
-              ],
-              style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
               decoration: const InputDecoration(
                 prefixText: "₹ ",
-                prefixStyle: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black,
-                  fontSize: 36.00,
-                ),
-                hintText: "00.0",
-                hintStyle: TextStyle(color: Colors.black38),
                 prefixStyle: TextStyle(
                   fontWeight: FontWeight.w600,
                   color: Colors.black,
@@ -174,10 +138,6 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
             const SizedBox(height: 24),
 
             /// 📂 CATEGORY
-            const Text(
-              "Select Category",
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
             const Text(
               "Select Category",
               style: TextStyle(fontWeight: FontWeight.w600),
