@@ -77,6 +77,7 @@ class _TransactionsPageState extends State<Transactions> {
         stream: _firestoreService.transactionsStream(widget.uid),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
+          if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
 
@@ -149,6 +150,7 @@ class _TransactionsPageState extends State<Transactions> {
       ),
 
       /// ➕ ADD BUTTON (RESTORED)
+      /// ➕ ADD BUTTON (RESTORED)
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF0B7D6E),
         child: const Icon(Icons.add),
@@ -167,7 +169,12 @@ class _TransactionsPageState extends State<Transactions> {
 
 class TransactionTile extends StatelessWidget {
   final String docId;
+class TransactionTile extends StatelessWidget {
+  final String docId;
   final Map<String, dynamic> data;
+  final bool isExpanded;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
   final bool isExpanded;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
@@ -180,12 +187,53 @@ class TransactionTile extends StatelessWidget {
     required this.onTap,
     required this.onLongPress,
   });
+  const TransactionTile({
+    super.key,
+    required this.docId,
+    required this.data,
+    required this.isExpanded,
+    required this.onTap,
+    required this.onLongPress,
+  });
 
   @override
   Widget build(BuildContext context) {
     final timestamp = data['timestamp'] as Timestamp;
+    final timestamp = data['timestamp'] as Timestamp;
     final dateTime = timestamp.toDate();
 
+    return InkWell(
+      onTap: onTap,
+      onLongPress: onLongPress,
+      child: Column(
+        children: [
+          ListTile(
+            leading: CircleAvatar(backgroundColor: _getColor(data['color'])),
+            title: Text(
+              data['title'],
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            subtitle: Text(
+              "${dateTime.day}/${dateTime.month}/${dateTime.year}",
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "₹${data['amount']}",
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(width: 4),
+
+                /// 🔄 Arrow animation
+                AnimatedRotation(
+                  turns: isExpanded ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: const Icon(Icons.keyboard_arrow_down),
+                ),
+              ],
+            ),
+          ),
     return InkWell(
       onTap: onTap,
       onLongPress: onLongPress,
@@ -255,7 +303,46 @@ class TransactionTile extends StatelessWidget {
                   )
                 : const SizedBox(),
           ),
+          /// 📦 Expandable content
+          AnimatedSize(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+            child: isExpanded
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _info("Amount", "₹${data['amount']}"),
+                        _info("Category", data['category']),
+                        _info(
+                          "Date & Time",
+                          "${dateTime.day}/${dateTime.month}/${dateTime.year} • "
+                              "${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}",
+                        ),
+                        _info(
+                          "Status",
+                          data['status'],
+                          color: data['status'] == "Overspend"
+                              ? Colors.red
+                              : Colors.green,
+                        ),
 
+                        if (data['note'] != null &&
+                            data['note'].toString().isNotEmpty)
+                          _info("Note", data['note']),
+                      ],
+                    ),
+                  )
+                : const SizedBox(),
+          ),
+
+          const Divider(),
+        ],
+      ),
           const Divider(),
         ],
       ),
@@ -281,6 +368,41 @@ class TransactionTile extends StatelessWidget {
         return Colors.grey;
     }
   }
+}
+
+String dateHeader(DateTime date) {
+  final now = DateTime.now();
+
+  if (DateUtils.isSameDay(date, now)) {
+    return "Today";
+  } else if (DateUtils.isSameDay(date, now.subtract(const Duration(days: 1)))) {
+    return "Yesterday";
+  } else {
+    return "${date.day}/${date.month}/${date.year}";
+  }
+}
+
+String monthKey(DateTime date) {
+  return "${date.year}-${date.month}";
+}
+
+Map<String, String> monthLabel(DateTime date) {
+  const months = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+
+  return {"month": months[date.month - 1], "year": date.year.toString()};
 }
 
 String dateHeader(DateTime date) {
