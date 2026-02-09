@@ -2,6 +2,8 @@ import 'package:finwise/firestore.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'profile.dart';
+import 'chat.dart';
 
 class Home extends StatelessWidget {
   const Home({super.key, required this.uid});
@@ -27,8 +29,9 @@ class Home extends StatelessWidget {
           builder: (context, userSnapshot) {
             final userData = userSnapshot.data?.data();
             final username = (userData?['username'] as String?)?.trim();
-            final displayName =
-                (username != null && username.isNotEmpty) ? username : 'User';
+            final displayName = (username != null && username.isNotEmpty)
+                ? username
+                : 'User';
 
             return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
               stream: firestoreService.transactionsStream(uid),
@@ -60,13 +63,26 @@ class Home extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Text(
-                        displayName,
-                        style: const TextStyle(
-                          fontSize: 46,
-                          color: Color(0xFF121B30),
-                          fontWeight: FontWeight.w700,
-                          height: 1.05,
+
+                      InkWell(
+                        onTap: () {
+                          if (username == null || username.isEmpty) return;
+
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => Profile(username: username),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          displayName,
+                          style: const TextStyle(
+                            fontSize: 46,
+                            color: Color(0xFF121B30),
+                            fontWeight: FontWeight.w700,
+                            height: 1.05,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -96,7 +112,7 @@ class Home extends StatelessWidget {
                             ),
                             const SizedBox(height: 10),
                             Text(
-                              '\$${balance.toStringAsFixed(0)}',
+                              '₹${balance.toStringAsFixed(0)}',
                               style: const TextStyle(
                                 fontSize: 46,
                                 color: Colors.white,
@@ -108,75 +124,93 @@ class Home extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 34),
-                      Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFA1C7C7),
-                          borderRadius: BorderRadius.circular(22),
+                      InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const GeminiChatPage(),
+                            ),
+                          );
+                        },
+                        borderRadius: const BorderRadius.vertical(
+                          bottom: Radius.circular(22),
                         ),
-                        child: Column(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(20, 18, 14, 16),
-                              child: Row(
-                                children: [
-                                  const Expanded(
-                                    child: Text(
-                                      'ASK AI COACH',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: 0.6,
+                        child: Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFA1C7C7),
+                            borderRadius: BorderRadius.circular(22),
+                          ),
+                          child: Column(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  20,
+                                  18,
+                                  14,
+                                  16,
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Expanded(
+                                      child: Text(
+                                        'ASK AI COACH',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 0.6,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  SizedBox(
-                                    height: 36,
-                                    width: 36,
-                                    // Placeholder icon path for AI widget header.
-                                    child: SvgPicture.asset(
-                                      'assets/Icons/google.svg',
-                                      fit: BoxFit.contain,
+                                    SizedBox(
+                                      height: 36,
+                                      width: 36,
+                                      // Placeholder icon path for AI widget header.
+                                      child: SvgPicture.asset(
+                                        'assets/Icons/google.svg',
+                                        fit: BoxFit.contain,
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 18,
-                                vertical: 12,
-                              ),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF9BAEBB),
-                                borderRadius: BorderRadius.vertical(
-                                  bottom: Radius.circular(22),
+                                  ],
                                 ),
                               ),
-                              child: const Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      'Ask me anything about your money...',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Color(0xFF24313D),
-                                        fontWeight: FontWeight.w500,
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 18,
+                                  vertical: 12,
+                                ),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF9BAEBB),
+                                  borderRadius: BorderRadius.vertical(
+                                    bottom: Radius.circular(22),
+                                  ),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        'Ask me anything about your money...',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Color(0xFF24313D),
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  SizedBox(width: 12),
-                                  Icon(
-                                    Icons.send,
-                                    color: Colors.white,
-                                    size: 26,
-                                  ),
-                                ],
+                                    SizedBox(width: 12),
+                                    Icon(
+                                      Icons.send,
+                                      color: Colors.white,
+                                      size: 26,
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ],

@@ -39,7 +39,7 @@ class Profile extends StatelessWidget {
             _InputTile(
               icon: Icons.currency_rupee,
               label: "Monthly Earnings",
-              hint: " 0.00",
+              hint: "₹ 0.00",
               keyboardType: TextInputType.number,
             ),
             _NavigationTile(
