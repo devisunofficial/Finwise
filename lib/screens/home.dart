@@ -66,12 +66,10 @@ class Home extends StatelessWidget {
 
                       InkWell(
                         onTap: () {
-                          if (username == null || username.isEmpty) return;
-
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => Profile(username: username),
+                              builder: (_) => Profile(uid: uid),
                             ),
                           );
                         },

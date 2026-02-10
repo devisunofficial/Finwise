@@ -1,16 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:finwise/firestore.dart';
 
 class SignupProfilePage extends StatefulWidget {
-  const SignupProfilePage({super.key});
+  const SignupProfilePage({super.key, required this.uid});
+
+  final String uid;
 
   @override
   State<SignupProfilePage> createState() => _SignupProfilePageState();
 }
 
 class _SignupProfilePageState extends State<SignupProfilePage> {
-  final nameController = TextEditingController();
-  final ageController = TextEditingController();
-  final salaryController = TextEditingController();
+  final FirestoreService _firestoreService = FirestoreService();
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController ageController = TextEditingController();
+  final TextEditingController salaryController = TextEditingController();
+
+  int? _creditDay;
+  bool _isSaving = false;
 
   @override
   void dispose() {
@@ -20,13 +28,66 @@ class _SignupProfilePageState extends State<SignupProfilePage> {
     super.dispose();
   }
 
+  Future<void> _saveProfile() async {
+    final username = nameController.text.trim().isEmpty
+        ? 'User'
+        : nameController.text.trim();
+    final age = int.tryParse(ageController.text.trim());
+    final monthlyEarnings = num.tryParse(salaryController.text.trim());
+
+    if (age == null || age < 0) {
+      _showSnack('Enter a valid age.');
+      return;
+    }
+
+    if (monthlyEarnings == null || monthlyEarnings < 0) {
+      _showSnack('Enter valid monthly earnings.');
+      return;
+    }
+
+    if (_creditDay == null || _creditDay! < 1 || _creditDay! > 31) {
+      _showSnack('Select a valid salary credit day.');
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    try {
+      await _firestoreService.userDoc(widget.uid).set({
+        'username': username,
+        'age': age,
+        'monthly_earnings': monthlyEarnings,
+        'credit_day': _creditDay,
+        'profile_completed': true,
+      }, SetOptions(merge: true));
+
+      await _firestoreService.applyDueMonthlyCredits(uid: widget.uid);
+      if (!mounted) return;
+      Navigator.of(context).pushNamedAndRemoveUntil('/wrapper', (route) => false);
+    } catch (_) {
+      if (mounted) {
+        _showSnack('Failed to save profile.');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FC),
       appBar: AppBar(
         title: const Text(
-          "Set up your profile",
+          'Set up your profile',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.white,
@@ -37,43 +98,52 @@ class _SignupProfilePageState extends State<SignupProfilePage> {
         padding: const EdgeInsets.all(16),
         children: [
           _Section(
-            title: "Personal Information",
+            title: 'Personal Information',
             children: [
               _InputTile(
                 controller: nameController,
                 icon: Icons.person_outline,
-                label: "Full Name",
-                hint: "Enter your name",
+                label: 'Full Name',
+                hint: 'Enter your name',
                 keyboardType: TextInputType.name,
               ),
               _InputTile(
                 controller: ageController,
                 icon: Icons.cake_outlined,
-                label: "Age",
-                hint: "Enter your age",
+                label: 'Age',
+                hint: 'Enter your age',
                 keyboardType: TextInputType.number,
               ),
             ],
           ),
           const SizedBox(height: 16),
           _Section(
-            title: "Financial Information",
+            title: 'Financial Information',
             children: [
               _InputTile(
                 controller: salaryController,
                 icon: Icons.currency_rupee,
-                label: "Monthly Earnings",
-                hint: "₹ 0.00",
+                label: 'Monthly Earnings',
+                hint: '0.00',
                 keyboardType: TextInputType.number,
               ),
-              const _DateTile(
+              _DateTile(
                 icon: Icons.calendar_month_outlined,
-                label: "Salary Credit Date",
+                label: 'Salary Credit Date',
+                selectedDay: _creditDay,
+                onDaySelected: (day) {
+                  setState(() {
+                    _creditDay = day;
+                  });
+                },
               ),
             ],
           ),
           const SizedBox(height: 32),
-          const _ContinueButton(),
+          _ContinueButton(
+            isSaving: _isSaving,
+            onPressed: _saveProfile,
+          ),
         ],
       ),
     );
@@ -111,6 +181,7 @@ class _Section extends StatelessWidget {
     );
   }
 }
+
 class _InputTile extends StatelessWidget {
   final TextEditingController controller;
   final IconData icon;
@@ -143,54 +214,59 @@ class _InputTile extends StatelessWidget {
     );
   }
 }
-class _DateTile extends StatefulWidget {
+
+class _DateTile extends StatelessWidget {
   final IconData icon;
   final String label;
+  final int? selectedDay;
+  final ValueChanged<int> onDaySelected;
 
   const _DateTile({
     required this.icon,
     required this.label,
+    required this.selectedDay,
+    required this.onDaySelected,
   });
-
-  @override
-  State<_DateTile> createState() => _DateTileState();
-}
-
-class _DateTileState extends State<_DateTile> {
-  DateTime? selectedDate;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(widget.icon),
-      title: Text(widget.label),
+      leading: Icon(icon),
+      title: Text(label),
       subtitle: Text(
-        selectedDate == null
-            ? "Select date"
-            : "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}",
+        selectedDay == null
+            ? 'Select date'
+            : 'Day ${selectedDay!.toString().padLeft(2, '0')}',
       ),
       trailing: const Icon(Icons.chevron_right),
       onTap: () async {
+        final now = DateTime.now();
+        final initialDay = selectedDay ?? now.day;
+        final initialDate = DateTime(now.year, now.month, initialDay);
+
         final date = await showDatePicker(
           context: context,
-          initialDate: DateTime.now(),
+          initialDate: initialDate,
           firstDate: DateTime(2000),
           lastDate: DateTime(2100),
         );
 
-        if (!mounted) return;
-
         if (date != null) {
-          setState(() {
-            selectedDate = date;
-          });
+          onDaySelected(date.day);
         }
       },
     );
   }
 }
+
 class _ContinueButton extends StatelessWidget {
-  const _ContinueButton();
+  const _ContinueButton({
+    required this.onPressed,
+    required this.isSaving,
+  });
+
+  final VoidCallback onPressed;
+  final bool isSaving;
 
   @override
   Widget build(BuildContext context) {
@@ -204,15 +280,23 @@ class _ContinueButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
           ),
         ),
-        onPressed: () {
-        },
-        child: const Text(
-          "Continue",
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        onPressed: isSaving ? null : onPressed,
+        child: isSaving
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : const Text(
+                'Continue',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
       ),
     );
   }
