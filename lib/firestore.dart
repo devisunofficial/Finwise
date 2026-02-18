@@ -87,9 +87,7 @@ class FirestoreService {
         }
       }
 
-      if (startMonth == null) {
-        startMonth = currentMonthStart;
-      }
+      startMonth ??= currentMonthStart;
 
       if (_compareYearMonth(startMonth, endMonth) > 0) {
         transaction.set(userRef, {

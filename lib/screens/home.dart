@@ -38,12 +38,22 @@ class Home extends StatelessWidget {
               builder: (context, txSnapshot) {
                 final docs = txSnapshot.data?.docs ?? [];
                 final balance = docs.fold<double>(0, (sum, doc) {
-                  final amount = doc.data()['amount'];
-                  if (amount is num) return sum + amount.toDouble();
-                  if (amount is String) {
-                    return sum + (double.tryParse(amount) ?? 0);
-                  }
-                  return sum;
+                  final data = doc.data();
+                  final amountValue = data['amount'];
+                  final amount = amountValue is num
+                      ? amountValue.toDouble()
+                      : amountValue is String
+                          ? (double.tryParse(amountValue) ?? 0)
+                          : 0.0;
+
+                  if (amount == 0) return sum;
+
+                  final category = (data['category'] as String?)?.toLowerCase();
+                  final source = (data['source'] as String?)?.toLowerCase();
+                  final isIncome =
+                      source == 'auto_salary' || category == 'income';
+
+                  return isIncome ? sum + amount.abs() : sum - amount.abs();
                 });
 
                 return SingleChildScrollView(

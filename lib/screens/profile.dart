@@ -166,6 +166,14 @@ class _ProfileState extends State<Profile> {
       await _firestoreService.applyDueMonthlyCredits(uid: widget.uid);
       if (!mounted) return;
       _showSnack('Profile saved.');
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      } else {
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/wrapper',
+          (route) => false,
+        );
+      }
     } catch (_) {
       if (!mounted) return;
       _showSnack('Failed to save profile.');
@@ -380,6 +388,5 @@ class _DangerTile extends StatelessWidget {
   }
 
 }
-
 
 
