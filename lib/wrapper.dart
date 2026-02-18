@@ -1,15 +1,15 @@
-import 'package:finwise/screens/home.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:finwise/authenticate/auth.dart';
 import 'package:finwise/authenticate/login.dart';
 import 'package:finwise/firestore.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:finwise/screens/add_trans.dart';
+import 'package:finwise/screens/goals.dart';
+import 'package:finwise/screens/home.dart';
+import 'package:finwise/screens/investment.dart';
+import 'package:finwise/screens/signup_profile.dart';
+import 'package:finwise/screens/transactions.dart';
 import 'package:flutter/material.dart';
-import 'screens/add_trans.dart';
-import 'screens/goals.dart';
-import 'screens/investment.dart';
-import 'screens/signup_profile.dart';
-import 'screens/transactions.dart';
 
 class Wrapper extends StatelessWidget {
   const Wrapper({super.key});
@@ -89,34 +89,35 @@ class _HomePageState extends State<HomePage> {
   final GlobalKey<InvestmentPageState> _investmentPageKey =
       GlobalKey<InvestmentPageState>();
 
+  List<Widget> get _screens => [
+    Home(uid: widget.uid),
+    Transactions(uid: widget.uid),
+    GoalsPage(key: _goalsPageKey, uid: widget.uid),
+    Investment(key: _investmentPageKey, uid: widget.uid),
+  ];
+
   @override
   void initState() {
     super.initState();
     _applyDueMonthlyCreditsOnce();
   }
 
-  List<Widget> get _screens => [
-    Home(uid: widget.uid),
-    Transactions(uid: widget.uid),
-    GoalsPage(key: _goalsPageKey),
-    Investment(key: _investmentPageKey),
-  ];
-
   Future<void> _applyDueMonthlyCreditsOnce() async {
     try {
       await _firestoreService.applyDueMonthlyCredits(uid: widget.uid);
     } catch (_) {
-      // Ignore transient failures; credit will retry next app-open.
+      // Ignore transient failures; this can run again on next app open.
+    }
+  }
+
+  void _closeFabMenu() {
+    if (_isFabMenuOpen) {
+      setState(() => _isFabMenuOpen = false);
     }
   }
 
   void _toggleFabMenu() {
     setState(() => _isFabMenuOpen = !_isFabMenuOpen);
-  }
-
-  void _closeFabMenu() {
-    if (!_isFabMenuOpen) return;
-    setState(() => _isFabMenuOpen = false);
   }
 
   void _selectTab(int index) {
@@ -126,9 +127,10 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _openAddTransaction() async {
     _closeFabMenu();
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => AddTransactionPage(uid: widget.uid)),
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AddTransactionPage(uid: widget.uid),
+      ),
     );
   }
 
@@ -150,9 +152,9 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildNavItem({
     required int index,
+    required String label,
     required IconData icon,
     required IconData activeIcon,
-    required String label,
   }) {
     final isActive = _currentIndex == index;
     final color = isActive ? const Color(0xFF0B1B3B) : Colors.grey.shade600;
@@ -160,19 +162,19 @@ class _HomePageState extends State<HomePage> {
     return Expanded(
       child: InkWell(
         onTap: () => _selectTab(index),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         child: SizedBox(
-          height: 64,
+          height: 70,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(isActive ? activeIcon : icon, color: color, size: 24),
+              Icon(isActive ? activeIcon : icon, color: color, size: 23),
               const SizedBox(height: 4),
               Text(
                 label,
                 style: TextStyle(
                   color: color,
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                 ),
               ),
@@ -192,8 +194,8 @@ class _HomePageState extends State<HomePage> {
         borderRadius: BorderRadius.circular(18),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x33000000),
-            blurRadius: 18,
+            color: Color(0x30000000),
+            blurRadius: 16,
             offset: Offset(0, 8),
           ),
         ],
@@ -227,7 +229,10 @@ class _HomePageState extends State<HomePage> {
       extendBody: true,
       body: Stack(
         children: [
-          IndexedStack(index: _currentIndex, children: _screens),
+          IndexedStack(
+            index: _currentIndex,
+            children: _screens,
+          ),
           if (_isFabMenuOpen)
             Positioned.fill(
               child: GestureDetector(
@@ -256,43 +261,43 @@ class _HomePageState extends State<HomePage> {
           child: AnimatedRotation(
             turns: _isFabMenuOpen ? 0.125 : 0,
             duration: const Duration(milliseconds: 220),
-            child: const Icon(Icons.add, color: Colors.white, size: 33),
+            child: const Icon(Icons.add, color: Colors.white, size: 34),
           ),
         ),
       ),
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
         notchMargin: 8,
-        color: Colors.white,
         elevation: 10,
+        color: Colors.white,
         child: SizedBox(
           height: 72,
           child: Row(
             children: [
               _buildNavItem(
                 index: 0,
+                label: 'Home',
                 icon: Icons.home_outlined,
                 activeIcon: Icons.home_rounded,
-                label: 'Home',
               ),
               _buildNavItem(
                 index: 1,
+                label: 'Transactions',
                 icon: Icons.receipt_long_outlined,
                 activeIcon: Icons.receipt_long_rounded,
-                label: 'Transactions',
               ),
               const SizedBox(width: 70),
               _buildNavItem(
                 index: 2,
+                label: 'Goals',
                 icon: Icons.flag_outlined,
                 activeIcon: Icons.flag_rounded,
-                label: 'Goals',
               ),
               _buildNavItem(
                 index: 3,
+                label: 'Investments',
                 icon: Icons.trending_up_outlined,
                 activeIcon: Icons.trending_up_rounded,
-                label: 'Investments',
               ),
             ],
           ),
@@ -335,9 +340,9 @@ class _FabMenuItem extends StatelessWidget {
             Text(
               label,
               style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
                 color: Color(0xFF0B1B3B),
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
               ),
             ),
           ],

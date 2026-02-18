@@ -14,6 +14,14 @@ class FirestoreService {
     return userDoc(uid).collection('transactions');
   }
 
+  CollectionReference<Map<String, dynamic>> userGoals(String uid) {
+    return userDoc(uid).collection('goals');
+  }
+
+  CollectionReference<Map<String, dynamic>> userInvestments(String uid) {
+    return userDoc(uid).collection('investments');
+  }
+
   Future<void> ensureUserDoc({required String uid, required String email}) async {
     final docRef = userDoc(uid);
     final snapshot = await docRef.get();
@@ -37,11 +45,33 @@ class FirestoreService {
     return userTransactions(uid).orderBy('timestamp', descending: true).snapshots();
   }
 
+  Stream<QuerySnapshot<Map<String, dynamic>>> goalsStream(String uid) {
+    return userGoals(uid).snapshots();
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> investmentsStream(String uid) {
+    return userInvestments(uid).orderBy('createdAt', descending: true).snapshots();
+  }
+
   Future<void> addTransaction({
     required String uid,
     required Map<String, dynamic> data,
   }) async {
     await userTransactions(uid).add(data);
+  }
+
+  Future<void> addGoal({
+    required String uid,
+    required Map<String, dynamic> data,
+  }) async {
+    await userGoals(uid).add(data);
+  }
+
+  Future<void> addInvestment({
+    required String uid,
+    required Map<String, dynamic> data,
+  }) async {
+    await userInvestments(uid).add(data);
   }
 
   Future<void> applyDueMonthlyCredits({
