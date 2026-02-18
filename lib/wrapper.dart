@@ -2,11 +2,13 @@ import 'package:finwise/screens/home.dart';
 import 'package:finwise/authenticate/auth.dart';
 import 'package:finwise/authenticate/login.dart';
 import 'package:finwise/firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'screens/add.dart';
 import 'screens/goals.dart';
 import 'screens/investment.dart';
+import 'screens/signup_profile.dart';
 import 'screens/transactions.dart';
 
 class Wrapper extends StatelessWidget {
@@ -40,7 +42,26 @@ class Wrapper extends StatelessWidget {
                 );
               }
 
-              return HomePage(uid: user.uid);
+              return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                stream: firestoreService.userDocStream(user.uid),
+                builder: (context, profileSnapshot) {
+                  if (!profileSnapshot.hasData) {
+                    return const Scaffold(
+                      body: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+
+                  final userData = profileSnapshot.data?.data();
+                  final isProfileCompleted =
+                      userData?['profile_completed'] == true;
+
+                  if (!isProfileCompleted) {
+                    return SignupProfilePage(uid: user.uid);
+                  }
+
+                  return HomePage(uid: user.uid);
+                },
+              );
             },
           );
         }
@@ -63,6 +84,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
   late final List<Widget> widgetList;
+  final FirestoreService _firestoreService = FirestoreService();
 
   @override
   void initState() {
@@ -74,6 +96,15 @@ class _HomePageState extends State<HomePage> {
       const GoalsPage(),
       const Investment(),
     ];
+    _applyDueMonthlyCreditsOnce();
+  }
+
+  Future<void> _applyDueMonthlyCreditsOnce() async {
+    try {
+      await _firestoreService.applyDueMonthlyCredits(uid: widget.uid);
+    } catch (_) {
+      // Ignore transient failures; credit will retry next app-open.
+    }
   }
 
   @override
