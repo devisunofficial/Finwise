@@ -6,19 +6,17 @@ import 'package:firebase_auth/firebase_auth.dart';
 class Goal {
   String title;
   double targetAmount;
-  DateTime deadline;
+  int years;
+  int months;
 
   Goal({
     required this.title,
     required this.targetAmount,
-    required this.deadline,
+    required this.years,
+    required this.months,
   });
 
-  int get monthsLeft {
-    final now = DateTime.now();
-    return (deadline.year - now.year) * 12 +
-        (deadline.month - now.month);
-  }
+  int get totalMonths => (years * 12) + months;
 }
 
 class GoalsPage extends StatefulWidget {
@@ -33,7 +31,9 @@ class GoalsPageState extends State<GoalsPage> {
 
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _amountController = TextEditingController();
-  final TextEditingController _deadlineController = TextEditingController();
+  final TextEditingController _yearsController =
+      TextEditingController(text: "0"); // Default 0
+  final TextEditingController _monthsController = TextEditingController();
 
   double _totalSavings = 0;
 
@@ -68,22 +68,21 @@ class GoalsPageState extends State<GoalsPage> {
   void _addGoal() {
     if (_titleController.text.isEmpty ||
         _amountController.text.isEmpty ||
-        _deadlineController.text.length != 5) {
+        _monthsController.text.isEmpty) {
       return;
     }
 
-    final parts = _deadlineController.text.split('/');
-    final month = int.tryParse(parts[0]) ?? 0;
-    final year = 2000 + (int.tryParse(parts[1]) ?? 0);
+    final years = int.tryParse(_yearsController.text) ?? 0;
+    final months = int.tryParse(_monthsController.text) ?? 0;
 
-    if (month < 1 || month > 12) return;
-
-    final deadline = DateTime(year, month);
+    if (months < 0 || months > 11) return;
+    if (years == 0 && months == 0) return;
 
     final goal = Goal(
       title: _titleController.text,
       targetAmount: double.parse(_amountController.text),
-      deadline: deadline,
+      years: years,
+      months: months,
     );
 
     setState(() {
@@ -93,14 +92,15 @@ class GoalsPageState extends State<GoalsPage> {
 
     _titleController.clear();
     _amountController.clear();
-    _deadlineController.clear();
+    _yearsController.text = "0"; // Reset to default
+    _monthsController.clear();
 
     Navigator.pop(context);
   }
 
   void _sortGoals() {
     _goals.sort((a, b) {
-      int timeCompare = a.monthsLeft.compareTo(b.monthsLeft);
+      int timeCompare = a.totalMonths.compareTo(b.totalMonths);
       if (timeCompare != 0) return timeCompare;
       return a.targetAmount.compareTo(b.targetAmount);
     });
@@ -115,21 +115,15 @@ class GoalsPageState extends State<GoalsPage> {
     String hint,
     TextEditingController controller, {
     bool isNumber = false,
-    bool isDeadline = false,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: TextField(
         controller: controller,
         keyboardType:
-            isNumber || isDeadline ? TextInputType.number : TextInputType.text,
-        inputFormatters: isDeadline
-            ? [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(4),
-                _MonthYearFormatter(),
-              ]
-            : null,
+            isNumber ? TextInputType.number : TextInputType.text,
+        inputFormatters:
+            isNumber ? [FilteringTextInputFormatter.digitsOnly] : null,
         decoration: InputDecoration(
           hintText: hint,
           filled: true,
@@ -171,12 +165,29 @@ class GoalsPageState extends State<GoalsPage> {
                     color: Color(0xFF0B1B3B)),
               ),
               const SizedBox(height: 20),
+
               _inputField("Goal Title", _titleController),
               _inputField("Target Amount", _amountController,
                   isNumber: true),
-              _inputField("Deadline (MM/YY)", _deadlineController,
-                  isDeadline: true),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: _inputField(
+                        "Years (optional)", _yearsController,
+                        isNumber: true),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _inputField(
+                        "Months (0-11)", _monthsController,
+                        isNumber: true),
+                  ),
+                ],
+              ),
+
               const SizedBox(height: 20),
+
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF0B1B3B),
@@ -187,6 +198,7 @@ class GoalsPageState extends State<GoalsPage> {
                 onPressed: _addGoal,
                 child: const Text("Save Goal"),
               ),
+
               const SizedBox(height: 20),
             ],
           ),
@@ -197,6 +209,13 @@ class GoalsPageState extends State<GoalsPage> {
 
   Widget _goalCard(Goal goal, int number) {
     final progress = _calculateProgress(goal.targetAmount);
+
+    String durationText;
+    if (goal.years == 0) {
+      durationText = "${goal.months} months";
+    } else {
+      durationText = "${goal.years}y ${goal.months}m";
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
@@ -217,7 +236,7 @@ class GoalsPageState extends State<GoalsPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            "Target: ₹${goal.targetAmount.toStringAsFixed(0)} | ${goal.monthsLeft} months left",
+            "Target: ₹${goal.targetAmount.toStringAsFixed(0)} | $durationText",
             style: const TextStyle(color: Colors.white70),
           ),
           const SizedBox(height: 12),
@@ -278,23 +297,6 @@ class GoalsPageState extends State<GoalsPage> {
                 },
               ),
       ),
-    );
-  }
-}
-
-class _MonthYearFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue, TextEditingValue newValue) {
-    String text = newValue.text;
-
-    if (text.length >= 3) {
-      text = "${text.substring(0, 2)}/${text.substring(2)}";
-    }
-
-    return TextEditingValue(
-      text: text,
-      selection: TextSelection.collapsed(offset: text.length),
     );
   }
 }
