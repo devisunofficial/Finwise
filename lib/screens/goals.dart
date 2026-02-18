@@ -22,13 +22,13 @@ class Goal {
 }
 
 class GoalsPage extends StatefulWidget {
-  const GoalsPage({Key? key}) : super(key: key);
+  const GoalsPage({super.key});
 
   @override
-  State<GoalsPage> createState() => _GoalsPageState();
+  State<GoalsPage> createState() => GoalsPageState();
 }
 
-class _GoalsPageState extends State<GoalsPage> {
+class GoalsPageState extends State<GoalsPage> {
   final List<Goal> _goals = [];
 
   final TextEditingController _titleController = TextEditingController();
@@ -43,6 +43,14 @@ class _GoalsPageState extends State<GoalsPage> {
   void initState() {
     super.initState();
     _fetchTotalSavings();
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _amountController.dispose();
+    _deadlineController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchTotalSavings() async {
@@ -137,7 +145,7 @@ class _GoalsPageState extends State<GoalsPage> {
     );
   }
 
-  void _showAddGoalSheet() {
+  void openAddGoalSheet() {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFFF2F3F7),
@@ -251,7 +259,7 @@ class _GoalsPageState extends State<GoalsPage> {
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF0B1B3B),
-        onPressed: _showAddGoalSheet,
+        onPressed: openAddGoalSheet,
         child: const Icon(Icons.add),
       ),
       body: Padding(
