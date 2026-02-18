@@ -32,7 +32,7 @@ class _GoalsPageState extends State<GoalsPage> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _yearsController =
-      TextEditingController(text: "0"); // Default 0
+      TextEditingController(); // No default value now
   final TextEditingController _monthsController = TextEditingController();
 
   double _totalSavings = 0;
@@ -64,7 +64,9 @@ class _GoalsPageState extends State<GoalsPage> {
       return;
     }
 
-    final years = int.tryParse(_yearsController.text) ?? 0;
+    final years =
+        _yearsController.text.isEmpty ? 0 : int.tryParse(_yearsController.text) ?? 0;
+
     final months = int.tryParse(_monthsController.text) ?? 0;
 
     if (months < 0 || months > 11) return;
@@ -84,7 +86,7 @@ class _GoalsPageState extends State<GoalsPage> {
 
     _titleController.clear();
     _amountController.clear();
-    _yearsController.text = "0"; // Reset to default
+    _yearsController.clear(); // stays empty
     _monthsController.clear();
 
     Navigator.pop(context);
@@ -203,10 +205,10 @@ class _GoalsPageState extends State<GoalsPage> {
     final progress = _calculateProgress(goal.targetAmount);
 
     String durationText;
-    if (goal.years == 0) {
-      durationText = "${goal.months} months";
-    } else {
+    if (goal.years > 0) {
       durationText = "${goal.years}y ${goal.months}m";
+    } else {
+      durationText = "${goal.months} months";
     }
 
     return Container(
