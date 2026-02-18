@@ -71,7 +71,7 @@ class _HomePageState extends State<HomePage> {
       Home(uid: widget.uid),
       Transactions(uid: widget.uid),
       const Add(),
-      const Goals(),
+      const GoalsPage(),
       const Investment(),
     ];
   }
