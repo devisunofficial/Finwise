@@ -5,7 +5,7 @@ import 'package:finwise/firestore.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'screens/add.dart';
+import 'screens/add_trans.dart';
 import 'screens/goals.dart';
 import 'screens/investment.dart';
 import 'screens/signup_profile.dart';
@@ -83,21 +83,24 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
-  late final List<Widget> widgetList;
+  bool _isFabMenuOpen = false;
   final FirestoreService _firestoreService = FirestoreService();
+  final GlobalKey<GoalsPageState> _goalsPageKey = GlobalKey<GoalsPageState>();
+  final GlobalKey<InvestmentPageState> _investmentPageKey =
+      GlobalKey<InvestmentPageState>();
 
   @override
   void initState() {
     super.initState();
-    widgetList = [
-      Home(uid: widget.uid),
-      Transactions(uid: widget.uid),
-      const Add(),
-      const GoalsPage(),
-      const Investment(),
-    ];
     _applyDueMonthlyCreditsOnce();
   }
+
+  List<Widget> get _screens => [
+    Home(uid: widget.uid),
+    Transactions(uid: widget.uid),
+    GoalsPage(key: _goalsPageKey),
+    Investment(key: _investmentPageKey),
+  ];
 
   Future<void> _applyDueMonthlyCreditsOnce() async {
     try {
@@ -107,71 +110,239 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  void _toggleFabMenu() {
+    setState(() => _isFabMenuOpen = !_isFabMenuOpen);
+  }
+
+  void _closeFabMenu() {
+    if (!_isFabMenuOpen) return;
+    setState(() => _isFabMenuOpen = false);
+  }
+
+  void _selectTab(int index) {
+    _closeFabMenu();
+    setState(() => _currentIndex = index);
+  }
+
+  Future<void> _openAddTransaction() async {
+    _closeFabMenu();
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => AddTransactionPage(uid: widget.uid)),
+    );
+  }
+
+  void _openAddGoal() {
+    _closeFabMenu();
+    setState(() => _currentIndex = 2);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _goalsPageKey.currentState?.openAddGoalSheet();
+    });
+  }
+
+  void _openAddInvestment() {
+    _closeFabMenu();
+    setState(() => _currentIndex = 3);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _investmentPageKey.currentState?.openAddInvestmentSheet();
+    });
+  }
+
+  Widget _buildNavItem({
+    required int index,
+    required IconData icon,
+    required IconData activeIcon,
+    required String label,
+  }) {
+    final isActive = _currentIndex == index;
+    final color = isActive ? const Color(0xFF0B1B3B) : Colors.grey.shade600;
+
+    return Expanded(
+      child: InkWell(
+        onTap: () => _selectTab(index),
+        borderRadius: BorderRadius.circular(20),
+        child: SizedBox(
+          height: 64,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(isActive ? activeIcon : icon, color: color, size: 24),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 12,
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFabMenu() {
+    return Container(
+      width: 260,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 18,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _FabMenuItem(
+            icon: Icons.receipt_long_rounded,
+            label: 'Add transaction',
+            onTap: _openAddTransaction,
+          ),
+          _FabMenuItem(
+            icon: Icons.flag_circle_rounded,
+            label: 'Add goal',
+            onTap: _openAddGoal,
+          ),
+          _FabMenuItem(
+            icon: Icons.trending_up_rounded,
+            label: 'Add new investment',
+            onTap: _openAddInvestment,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: widgetList[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home_filled),
-            label: 'Home',
-          ),
-
-          BottomNavigationBarItem(
-            icon: Icon(Icons.inventory_outlined),
-            activeIcon: Icon(Icons.inventory),
-            label: 'Transaction',
-          ),
-
-          BottomNavigationBarItem(
-            icon: Icon(Icons.add),
-            activeIcon: Icon(Icons.add_a_photo_outlined),
-            label: 'Add',
-          ),
-
-          BottomNavigationBarItem(
-            icon: Icon(Icons.games_outlined),
-            activeIcon: Icon(Icons.games_rounded),
-            label: 'Goals',
-          ),
-
-          BottomNavigationBarItem(
-            icon: Icon(Icons.functions_rounded),
-            activeIcon: Icon(Icons.mark_chat_read),
-            label: 'InvestMents',
-          ),
+      extendBody: true,
+      body: Stack(
+        children: [
+          IndexedStack(index: _currentIndex, children: _screens),
+          if (_isFabMenuOpen)
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: _closeFabMenu,
+                child: Container(color: Colors.black54),
+              ),
+            ),
+          if (_isFabMenuOpen)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 94,
+              child: Center(child: _buildFabMenu()),
+            ),
         ],
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          if (index == 2) {
-            // Assume the middle button triggers the menu
-            _showPopupMenu(context);
-            Icon(Icons.add);
-          } else {
-            setState(() => _currentIndex = index);
-          }
-        },
-        selectedItemColor: Colors.black,
-        unselectedItemColor: Colors.grey,
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton: SizedBox(
+        width: 66,
+        height: 66,
+        child: FloatingActionButton(
+          onPressed: _toggleFabMenu,
+          backgroundColor: const Color(0xFF0B1B3B),
+          shape: const CircleBorder(),
+          elevation: 6,
+          child: AnimatedRotation(
+            turns: _isFabMenuOpen ? 0.125 : 0,
+            duration: const Duration(milliseconds: 220),
+            child: const Icon(Icons.add, color: Colors.white, size: 33),
+          ),
+        ),
+      ),
+      bottomNavigationBar: BottomAppBar(
+        shape: const CircularNotchedRectangle(),
+        notchMargin: 8,
+        color: Colors.white,
+        elevation: 10,
+        child: SizedBox(
+          height: 72,
+          child: Row(
+            children: [
+              _buildNavItem(
+                index: 0,
+                icon: Icons.home_outlined,
+                activeIcon: Icons.home_rounded,
+                label: 'Home',
+              ),
+              _buildNavItem(
+                index: 1,
+                icon: Icons.receipt_long_outlined,
+                activeIcon: Icons.receipt_long_rounded,
+                label: 'Transactions',
+              ),
+              const SizedBox(width: 70),
+              _buildNavItem(
+                index: 2,
+                icon: Icons.flag_outlined,
+                activeIcon: Icons.flag_rounded,
+                label: 'Goals',
+              ),
+              _buildNavItem(
+                index: 3,
+                icon: Icons.trending_up_outlined,
+                activeIcon: Icons.trending_up_rounded,
+                label: 'Investments',
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
-// PopUP Menu Of navigation Bar
-void _showPopupMenu(BuildContext context) async {
-  // This positions the menu above the bottom bar
-  await showMenu(
-    context: context,
-    position: RelativeRect.fromLTRB(100.0, 600.0, 100.0, 0.0), // Adjust coordinates
-    items: [
-      const PopupMenuItem(value: 1, child: Text("Transaction")),
-      const PopupMenuItem(value: 2, child: Text("Goal")),
-      const PopupMenuItem(value: 2, child: Text("Investment")),
-    ],
-    elevation: 100.0,
-  );
+class _FabMenuItem extends StatelessWidget {
+  const _FabMenuItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: const Color(0x1A0B1B3B),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, size: 19, color: const Color(0xFF0B1B3B)),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF0B1B3B),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
