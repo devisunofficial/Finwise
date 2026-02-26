@@ -37,7 +37,7 @@ class Home extends StatelessWidget {
               stream: firestoreService.transactionsStream(uid),
               builder: (context, txSnapshot) {
                 final docs = txSnapshot.data?.docs ?? [];
-                final balance = docs.fold<double>(0, (sum, doc) {
+                final balance = docs.fold<double>(0, (add, doc) {
                   final data = doc.data();
                   final amountValue = data['amount'];
                   final amount = amountValue is num
@@ -46,14 +46,14 @@ class Home extends StatelessWidget {
                           ? (double.tryParse(amountValue) ?? 0)
                           : 0.0;
 
-                  if (amount == 0) return sum;
+                  if (amount == 0) return add;
 
                   final category = (data['category'] as String?)?.toLowerCase();
                   final source = (data['source'] as String?)?.toLowerCase();
                   final isIncome =
                       source == 'auto_salary' || category == 'income';
 
-                  return isIncome ? sum + amount.abs() : sum - amount.abs();
+                  return isIncome ? add + amount.abs() : add - amount.abs();
                 });
 
                 return SingleChildScrollView(

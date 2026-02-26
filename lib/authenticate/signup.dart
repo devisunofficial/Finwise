@@ -50,6 +50,7 @@ class _SignUpPageState extends State<SignUpPage> {
 
       startVerificationCheck();
     } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(e.message ?? "Signup failed")));
@@ -67,6 +68,7 @@ class _SignUpPageState extends State<SignUpPage> {
 
       if (user.emailVerified) {
         verificationTimer?.cancel();
+        if (!mounted) return;
         Navigator.pushReplacementNamed(context, "/login");
       }
     });
@@ -75,6 +77,7 @@ class _SignUpPageState extends State<SignUpPage> {
   // ---------------- RESEND ----------------
   Future<void> resendVerification() async {
     await FirebaseAuth.instance.currentUser!.sendEmailVerification();
+    if (!mounted) return;
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text("Verification email resent")));

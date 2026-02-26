@@ -55,7 +55,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     );
 
     if (date == null) return;
-
+    if (!mounted) return;
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(selectedDateTime),
@@ -96,6 +96,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
           .doc(widget.docId)
           .update(data);
     }
+    if (!mounted) return;
 
     Navigator.pop(context);
   }
@@ -109,6 +110,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     }
 
     await _firestoreService.userTransactions(widget.uid).doc(widget.docId).delete();
+    if (!mounted) return;
     Navigator.pop(context);
   }
 

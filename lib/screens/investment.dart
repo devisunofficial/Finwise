@@ -168,6 +168,7 @@ class InvestmentPageState extends State<Investment> {
         'createdAt': FieldValue.serverTimestamp(),
       },
     );
+    if (!mounted) return;
 
     Navigator.of(context).pop();
   }

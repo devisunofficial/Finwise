@@ -117,6 +117,7 @@ class _LoginScreenState extends State<Login> {
                   onPressed: () async {
                     final email = emailController.text.trim();
                     final password = passwordController.text.trim();
+                    final messenger = ScaffoldMessenger.of(context);
 
                     try {
                       await _authService.signInWithEmailAndPassword(
@@ -125,7 +126,7 @@ class _LoginScreenState extends State<Login> {
                       );
                     } catch (e) {
                       if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         SnackBar(content: Text('Sign in failed: $e')),
                       );
                     }

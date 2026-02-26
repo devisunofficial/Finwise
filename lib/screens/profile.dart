@@ -1,6 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:finwise/firestore.dart';
+import 'package:logger/logger.dart';
+
+// One instance to rule them all
+final logger = Logger(
+  printer: PrettyPrinter(
+    methodCount: 0,    // Number of method calls to be displayed
+    errorMethodCount: 8, // Number of method calls if stacktrace is provided
+    lineLength: 120,   // Width of the output
+    colors: true,      // Colorful log messages
+    printEmojis: true, // Print an emoji for each log message
+  ),
+);
 
 class Profile extends StatefulWidget {
   final String uid;
@@ -38,24 +50,34 @@ class _ProfileState extends State<Profile> {
   }
 
   Future<void> _loadUserData() async {
-    try {
-      final snapshot = await _firestoreService.userDoc(widget.uid).get();
-      final data = snapshot.data();
+  setState(() => _isLoading = true);
 
-      _usernameController.text = _asText(data?['username']);
-      _ageController.text = _asText(data?['age']);
+  try {
+    // 1. Fetching Data
+    final snapshot = await _firestoreService.userDoc(widget.uid).get();
+    final data = snapshot.data();
+
+    if (data != null) {
+      _usernameController.text = _asText(data['username']);
+      _ageController.text = _asText(data['age']);
       _monthlyEarningsController.text = _asText(
-        data?['monthly_earnings'] ?? data?['monthly earnings'],
+        data['monthly_earnings'] ?? data['monthly earnings'],
       );
       _creditDay = _parseCreditDay(
-        data?['credit_day'] ?? data?['credit date'],
+        data['credit_day'] ?? data['credit date'],
       );
       _creditDateController.text = _formatCreditDay(_creditDay);
-    } finally {
-      if (!mounted) return;
+    }
+  } catch (e, stackTrace) {
+    // 2. Logging instead of printing
+    logger.e("Firestore error", error: e, stackTrace: stackTrace);
+  } finally {
+    // 3. Safe cleanup: Check mounted status without using 'return'
+    if (mounted) {
       setState(() => _isLoading = false);
     }
   }
+}
 
   String _asText(dynamic value) {
     if (value == null) return '';

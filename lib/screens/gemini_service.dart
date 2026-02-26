@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'dart:developer' as dev;
 
 class GeminiService {
   static const String _apiKey = "AIzaSyAuXPA6pCsyfkL1dlEjWtrIlmNYuGfhhw4";
@@ -30,7 +31,12 @@ class GeminiService {
       final data = jsonDecode(response.body);
       return data["candidates"][0]["content"]["parts"][0]["text"];
     } else {
-      print("Gemini error ${response.statusCode}: ${response.body}");
+      dev.log(
+        "Gemini error: ${response.body}",
+        name: 'api.gemini',
+        level: 1000, // 1000 is the standard for 'shout' or severe errors
+        error: 'Status Code: ${response.statusCode}',
+      );
       return "Gemini error: ${response.statusCode}";
     }
   }

@@ -83,6 +83,8 @@ class GoalsPageState extends State<GoalsPage> {
     _amountController.clear();
     _yearsController.text = '0';
     _monthsController.clear();
+    
+    if (!mounted) return;
 
     Navigator.pop(context);
   }
