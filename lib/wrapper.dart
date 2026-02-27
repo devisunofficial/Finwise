@@ -282,7 +282,7 @@ class _HomePageState extends State<HomePage> {
               ),
               _buildNavItem(
                 index: 1,
-                label: 'Transactions',
+                label: 'Transaction',
                 icon: Icons.receipt_long_outlined,
                 activeIcon: Icons.receipt_long_rounded,
               ),
@@ -295,7 +295,7 @@ class _HomePageState extends State<HomePage> {
               ),
               _buildNavItem(
                 index: 3,
-                label: 'Investments',
+                label: 'Investment',
                 icon: Icons.trending_up_outlined,
                 activeIcon: Icons.trending_up_rounded,
               ),
